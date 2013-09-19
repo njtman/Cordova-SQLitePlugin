@@ -192,7 +192,7 @@ public class SQLitePlugin extends CordovaPlugin
 	 *            The database password or null.
 	 *
 	 */
-	private void openDatabase(String dbname, String password)
+	private void openDatabase(String action, JSONArray args, CallbackContext cbc)
 	{
 		SQLiteDatabase.loadLibs(this.cordova.getActivity());
 		if (this.getDatabase(dbname) != null) this.closeDatabase(dbname);
