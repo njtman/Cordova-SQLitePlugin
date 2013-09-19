@@ -192,7 +192,7 @@ public class SQLitePlugin extends CordovaPlugin
 	 *            The database password or null.
 	 *
 	 */
-	private void openDatabase(String action, JSONArray args, CallbackContext cbc)
+	private void openDatabase(String dbname, String password, CallbackContext cbc)
 	{
 		SQLiteDatabase.loadLibs(this.cordova.getActivity());
 		if (this.getDatabase(dbname) != null) this.closeDatabase(dbname);
@@ -209,7 +209,6 @@ public class SQLitePlugin extends CordovaPlugin
 		catch(Exception e){
 			cbc.error(e.toString());
 		}
-		dbmap.put(dbname, mydb);
 	}
 
 	/**
