@@ -21,7 +21,6 @@ import org.apache.cordova.CallbackContext;
 
 import android.database.Cursor;
 
-//import android.database.sqlite.*;
 import net.sqlcipher.database.*;
 
 import android.util.Base64;
@@ -72,7 +71,6 @@ public class SQLitePlugin extends CordovaPlugin
 			if (action.equals("open")) {
 				JSONObject o = args.getJSONObject(0);
 				String dbname = o.getString("name");
-				//this.openDatabase(dbname, null);
 				String key = o.getString("key");
 				this.openDatabase(dbname, key, cbc);
 			}
@@ -203,7 +201,6 @@ public class SQLitePlugin extends CordovaPlugin
 
 		Log.v("info", "Open sqlite db: " + dbfile.getAbsolutePath());
 
-		//SQLiteDatabase mydb = SQLiteDatabase.openOrCreateDatabase(dbfile, null);
 		try {
 			SQLiteDatabase mydb = SQLiteDatabase.openOrCreateDatabase(dbfile, password, null);
 			dbmap.put(dbname, mydb);
