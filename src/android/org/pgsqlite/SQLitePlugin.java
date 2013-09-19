@@ -4,7 +4,7 @@
  * Copyright (c) 2010, IBM Corporation
  */
 
-package org.pgsqlite;
+package com.phonegap.plugin.sqlitePlugin;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -21,7 +21,8 @@ import org.apache.cordova.CallbackContext;
 
 import android.database.Cursor;
 
-import android.database.sqlite.*;
+//import android.database.sqlite.*;
+import net.sqlcipher.database.*;
 
 import android.util.Base64;
 import android.util.Log;
@@ -71,8 +72,9 @@ public class SQLitePlugin extends CordovaPlugin
 			if (action.equals("open")) {
 				JSONObject o = args.getJSONObject(0);
 				String dbname = o.getString("name");
-
-				this.openDatabase(dbname, null);
+				//this.openDatabase(dbname, null);
+				String key = o.getString("key");
+				this.openDatabase(dbname, key, cbc);
 			}
 			else if (action.equals("close")) {
 				JSONObject o = args.getJSONObject(0);
@@ -194,14 +196,22 @@ public class SQLitePlugin extends CordovaPlugin
 	 */
 	private void openDatabase(String dbname, String password)
 	{
+		SQLiteDatabase.loadLibs(this.cordova.getActivity());
 		if (this.getDatabase(dbname) != null) this.closeDatabase(dbname);
 
 		File dbfile = this.cordova.getActivity().getDatabasePath(dbname + ".db");
 
 		Log.v("info", "Open sqlite db: " + dbfile.getAbsolutePath());
 
-		SQLiteDatabase mydb = SQLiteDatabase.openOrCreateDatabase(dbfile, null);
-
+		//SQLiteDatabase mydb = SQLiteDatabase.openOrCreateDatabase(dbfile, null);
+		try {
+			SQLiteDatabase mydb = SQLiteDatabase.openOrCreateDatabase(dbfile, password, null);
+			dbmap.put(dbname, mydb);
+			cbc.success();
+		}
+		catch(Exception e){
+			cbc.error(e.toString());
+		}
 		dbmap.put(dbname, mydb);
 	}
 
