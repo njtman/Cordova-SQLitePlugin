@@ -1,4 +1,4 @@
-# Cordova/PhoneGap SQLitePlugin
+# Cordova/PhoneGap SQLCipherPlugin
 
 Native interface to sqlite in a Cordova/PhoneGap plugin for Android & iOS, working to follow the HTML5 Web SQL API as close as possible.
 
@@ -54,6 +54,7 @@ License for iOS version: MIT only
 
 # Usage
 
+//TODO convert this text to include more info on sqlcipher
 The idea is to emulate the HTML5 SQL API as closely as possible. The only major change is to use window.sqlitePlugin.openDatabase() (or sqlitePlugin.openDatabase()) instead of window.openDatabase(). If you see any other major change please report it, it is probably a bug.
 
 ## Opening a database
