@@ -187,8 +187,8 @@ static int base64_encode_blockend(char* code_out,
             }
             else {
                 // Extra for SQLCipher:
-                // const char *key = [[options objectForKey:@"key"] UTF8String];
-                // if(key != NULL) sqlite3_key(db, key, strlen(key));
+                const char *key = [[options objectForKey:@"key"] UTF8String];
+                if(key != NULL) sqlite3_key(db, key, strlen(key));
 
                 // Attempt to read the SQLite master table (test for SQLCipher version):
                 if(sqlite3_exec(db, (const char*)"SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK) {
