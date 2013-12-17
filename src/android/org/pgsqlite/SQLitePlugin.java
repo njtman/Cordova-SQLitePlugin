@@ -4,7 +4,7 @@
  * Copyright (c) 2010, IBM Corporation
  */
 
-package com.phonegap.plugin.sqlitePlugin;
+package org.pgsqlite;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -16,11 +16,12 @@ import java.lang.Number;
 
 import java.util.HashMap;
 
-import org.apache.cordova.api.CordovaPlugin;
-import org.apache.cordova.api.CallbackContext;
+import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.CallbackContext;
 
 import android.database.Cursor;
 
+//import android.database.sqlite.*;
 import net.sqlcipher.database.*;
 
 import android.util.Base64;
@@ -64,15 +65,28 @@ public class SQLitePlugin extends CordovaPlugin
 	 */
 	@Override
 	public boolean execute(String action, JSONArray args, CallbackContext cbc)
-	{
-		try {
-			boolean status = true;
+	{	
+		boolean status = true;
+		
+		try {	
 
-			if (action.equals("open")) {
+			if (action.equals("open")) {				
 				JSONObject o = args.getJSONObject(0);
-				String dbname = o.getString("name");
-				String key = o.getString("key");
-				this.openDatabase(dbname, key, cbc);
+                String dbname = o.getString("name");
+                
+                //if no key is provided the db will be encrypted with a blank key
+                String key = "";
+				if (!o.isNull("key")) {
+					key = o.getString("key");
+				}
+				
+                status = this.openDatabase(dbname, key);
+                if (status) {
+                	cbc.success();
+                }
+                else {
+                	cbc.error("Could not open database with provided key");
+                }
 			}
 			else if (action.equals("close")) {
 				JSONObject o = args.getJSONObject(0);
@@ -81,6 +95,7 @@ public class SQLitePlugin extends CordovaPlugin
 				this.closeDatabase(dbname);
 			}
 			else if (action.equals("delete")) {
+				//TODO use cbc for delete success/failure
 				/* Stop & give up if API < 16: */
 				if (android.os.Build.VERSION.SDK_INT < 16) return false;
 
@@ -156,12 +171,12 @@ public class SQLitePlugin extends CordovaPlugin
 					this.executeSqlBatch(dbName, queries, jsonparams, queryIDs, cbc);
 			}
 
-			return status;
+			//return status;
 		} catch (JSONException e) {
 			// TODO: signal JSON problem to JS
-
-			return false;
+			status = false;
 		}
+		return status;
 	}
 
 	/**
@@ -190,25 +205,36 @@ public class SQLitePlugin extends CordovaPlugin
 	 *
 	 * @param password
 	 *            The database password or null.
+	 * @return 
 	 *
 	 */
-	private void openDatabase(String dbname, String password, CallbackContext cbc)
+	private boolean openDatabase(String dbname, String password)
 	{
-		SQLiteDatabase.loadLibs(this.cordova.getActivity());
-		if (this.getDatabase(dbname) != null) this.closeDatabase(dbname);
 
-		File dbfile = this.cordova.getActivity().getDatabasePath(dbname + ".db");
+        boolean status = false;
+        
+        SQLiteDatabase.loadLibs(this.cordova.getActivity());
+        
+        if (this.getDatabase(dbname) != null) this.closeDatabase(dbname);
 
-		Log.v("info", "Open sqlite db: " + dbfile.getAbsolutePath());
+        File dbfile = this.cordova.getActivity().getDatabasePath(dbname + ".db");
 
-		try {
-			SQLiteDatabase mydb = SQLiteDatabase.openOrCreateDatabase(dbfile, password, null);
-			dbmap.put(dbname, mydb);
-			cbc.success();
-		}
-		catch(Exception e){
-			cbc.error(e.toString());
-		}
+        Log.v("info", "Open sqlite db: " + dbfile.getAbsolutePath());
+
+        try {
+            SQLiteDatabase mydb = SQLiteDatabase.openOrCreateDatabase(dbfile, password, null);
+
+            if (mydb != null) {
+                    status = true;
+                    dbmap.put(dbname, mydb);
+            }
+        } catch (Exception ex) {
+            // log & give up:
+            Log.v("executeSqlBatch", "openDatabase(): Error=" +  ex.getMessage());
+            ex.printStackTrace();
+        }
+
+        return status;
 	}
 
 	/**
@@ -250,7 +276,8 @@ public class SQLitePlugin extends CordovaPlugin
 
 		// Use try & catch just in case android.os.Build.VERSION.SDK_INT >= 16 was lying:
 		try {
-			status = SQLiteDatabase.deleteDatabase(dbfile);
+			//status = SQLiteDatabase.deleteDatabase(dbfile);
+			status = dbfile.delete();
 		} catch (Exception ex) {
 			// log & give up:
 			Log.v("executeSqlBatch", "deleteDatabase(): Error=" +  ex.getMessage());
@@ -350,9 +377,7 @@ public class SQLitePlugin extends CordovaPlugin
 				// UPDATE or DELETE:
 				// NOTE: this code should be safe to RUN with old Android SDK.
 				// To BUILD with old Android SDK remove lines from HERE: {{
-				if (android.os.Build.VERSION.SDK_INT >= 11 &&
-				    (query.toLowerCase().startsWith("update") ||
-				     query.toLowerCase().startsWith("delete")))
+				if (android.os.Build.VERSION.SDK_INT >= 11 && (query.toLowerCase().startsWith("update") || query.toLowerCase().startsWith("delete")))
 				{
 					SQLiteStatement myStatement = mydb.compileStatement(query);
 
@@ -374,7 +399,8 @@ public class SQLitePlugin extends CordovaPlugin
 
 					// Use try & catch just in case android.os.Build.VERSION.SDK_INT >= 11 is lying:
 					try {
-						rowsAffected = myStatement.executeUpdateDelete();
+						//rowsAffected = myStatement.executeUpdateDelete();
+						rowsAffected = (int) myStatement.executeUpdateDelete();
 						// Indicate valid results:
 						needRawQuery = false;
 					} catch (SQLiteException ex) {
@@ -426,6 +452,49 @@ public class SQLitePlugin extends CordovaPlugin
 						queryResult = new JSONObject();
 						queryResult.put("insertId", insertId);
 						queryResult.put("rowsAffected", 1);
+					}
+				}
+
+				if (query.toLowerCase().startsWith("begin")) {
+					needRawQuery = false;
+					try {
+						mydb.beginTransaction();
+
+						queryResult = new JSONObject();
+						queryResult.put("rowsAffected", 0);
+					} catch (SQLiteException ex) {
+						ex.printStackTrace();
+						errorMessage = ex.getMessage();
+						Log.v("executeSqlBatch", "SQLiteDatabase.beginTransaction(): Error=" +  errorMessage);
+					}
+				}
+
+				if (query.toLowerCase().startsWith("commit")) {
+					needRawQuery = false;
+					try {
+						mydb.setTransactionSuccessful();
+						mydb.endTransaction();
+
+						queryResult = new JSONObject();
+						queryResult.put("rowsAffected", 0);
+					} catch (SQLiteException ex) {
+						ex.printStackTrace();
+						errorMessage = ex.getMessage();
+						Log.v("executeSqlBatch", "SQLiteDatabase.setTransactionSuccessful/endTransaction(): Error=" +  errorMessage);
+					}
+				}
+
+				if (query.toLowerCase().startsWith("rollback")) {
+					needRawQuery = false;
+					try {
+						mydb.endTransaction();
+
+						queryResult = new JSONObject();
+						queryResult.put("rowsAffected", 0);
+					} catch (SQLiteException ex) {
+						ex.printStackTrace();
+						errorMessage = ex.getMessage();
+						Log.v("executeSqlBatch", "SQLiteDatabase.endTransaction(): Error=" +  errorMessage);
 					}
 				}
 
