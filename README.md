@@ -2,6 +2,8 @@
 
 Native interface to sqlite in a Cordova/PhoneGap plugin for Android & iOS, working to follow the HTML5 Web SQL API as close as possible.
 
+#This repository contains the patches required to the iOS and Android native code to allow this plugin to work with SQLCipher.
+
 License for Android version: MIT or Apache
 
 License for iOS version: MIT only
