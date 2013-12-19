@@ -103,6 +103,13 @@ public class SQLitePlugin extends CordovaPlugin
 				String dbname = o.getString("path");
 
 				status = this.deleteDatabase(dbname);
+
+                if (status) {
+                	cbc.success();
+                }
+                else {
+                	cbc.error("Could not delete database");
+                }
 			}
 			else if (action.equals("executePragmaStatement"))
 			{
